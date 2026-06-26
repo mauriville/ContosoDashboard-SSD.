@@ -257,6 +257,11 @@ ServiceFabricBackup/
 *.ldf
 *.ndf
 
+# Local SQLite runtime files
+ContosoDashboard/ContosoDashboard.db
+ContosoDashboard/ContosoDashboard.db-shm
+ContosoDashboard/ContosoDashboard.db-wal
+
 # Business Intelligence projects
 *.rdl.data
 *.bim.layout

@@ -261,6 +261,11 @@ ServiceFabricBackup/
 ContosoDashboard/ContosoDashboard.db
 ContosoDashboard/ContosoDashboard.db-shm
 ContosoDashboard/ContosoDashboard.db-wal
+ContosoDashboard/AppData/uploads/*
+!ContosoDashboard/AppData/uploads/.gitkeep
+
+# macOS
+.DS_Store
 
 # Business Intelligence projects
 *.rdl.data

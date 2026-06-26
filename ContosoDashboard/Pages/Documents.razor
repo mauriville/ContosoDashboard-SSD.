@@ -1,0 +1,149 @@
+@page "/documents"
+@using Microsoft.AspNetCore.Authorization
+@using System.Security.Claims
+@attribute [Authorize]
+@inject IDocumentService DocumentService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>My Documents - ContosoDashboard</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h1>My Documents</h1>
+            <p class="text-muted">Upload supported files into your personal workspace or an active project you can access.</p>
+        </div>
+    </div>
+
+    <DocumentUploadPanel AvailableProjects="availableProjects" OnUploaded="HandleUploadedAsync" />
+    <DocumentUploadResults Results="uploadResults" />
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Uploaded Documents</h5>
+            <span class="badge bg-secondary">@documents.Count</span>
+        </div>
+        <div class="card-body p-0">
+            @if (isLoading)
+            {
+                <div class="p-3">
+                    <em>Loading...</em>
+                </div>
+            }
+            else if (!documents.Any())
+            {
+                <div class="p-3">
+                    <div class="alert alert-info mb-0">You have not uploaded any documents yet.</div>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Category</th>
+                                <th>Project</th>
+                                <th>Type</th>
+                                <th>Size</th>
+                                <th>Uploaded</th>
+                                <th>Tags</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var document in documents)
+                            {
+                                <tr>
+                                    <td>
+                                        <strong>@document.Title</strong>
+                                        <div class="text-muted small">@document.OriginalFileName</div>
+                                        @if (!string.IsNullOrWhiteSpace(document.Description))
+                                        {
+                                            <div class="small">@document.Description</div>
+                                        }
+                                    </td>
+                                    <td>@document.Category</td>
+                                    <td>@(document.ProjectName ?? "Personal")</td>
+                                    <td>@document.FileType</td>
+                                    <td>@FormatFileSize(document.FileSizeBytes)</td>
+                                    <td>@document.UploadedAtUtc.ToLocalTime().ToString("MMM dd, yyyy h:mm tt")</td>
+                                    <td>
+                                        @if (document.Tags.Any())
+                                        {
+                                            @foreach (var tag in document.Tags)
+                                            {
+                                                <span class="badge bg-light text-dark border me-1">@tag</span>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private readonly List<DocumentSummaryDto> documents = new();
+    private readonly List<UploadDocumentResult> uploadResults = new();
+    private IReadOnlyList<UploadProjectOptionDto> availableProjects = Array.Empty<UploadProjectOptionDto>();
+    private bool isLoading = true;
+    private int currentUserId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userIdClaim = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(userIdClaim, out var userId))
+        {
+            currentUserId = userId;
+            await LoadAsync();
+        }
+
+        isLoading = false;
+    }
+
+    private async Task HandleUploadedAsync(UploadDocumentsResponse response)
+    {
+        uploadResults.Clear();
+        uploadResults.AddRange(response.Results);
+        await LoadDocumentsAsync();
+        StateHasChanged();
+    }
+
+    private async Task LoadAsync()
+    {
+        await Task.WhenAll(
+            LoadDocumentsAsync(),
+            LoadProjectsAsync());
+    }
+
+    private async Task LoadDocumentsAsync()
+    {
+        documents.Clear();
+        documents.AddRange(await DocumentService.GetMyDocumentsAsync(currentUserId));
+    }
+
+    private async Task LoadProjectsAsync()
+    {
+        availableProjects = await DocumentService.GetAvailableUploadProjectsAsync(currentUserId);
+    }
+
+    private static string FormatFileSize(long sizeInBytes)
+    {
+        const long kb = 1024;
+        const long mb = kb * 1024;
+
+        return sizeInBytes >= mb
+            ? $"{sizeInBytes / (double)mb:0.##} MB"
+            : $"{sizeInBytes / (double)kb:0.##} KB";
+    }
+}

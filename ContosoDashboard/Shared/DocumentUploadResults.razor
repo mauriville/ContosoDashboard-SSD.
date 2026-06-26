@@ -1,0 +1,49 @@
+@if (Results is { Count: > 0 })
+{
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Upload Results</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive mb-0">
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            <th>File</th>
+                            <th>Status</th>
+                            <th>Message</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var result in Results)
+                        {
+                            <tr>
+                                <td>@result.FileName</td>
+                                <td>
+                                    <span class="badge bg-@GetBadgeColor(result.Outcome)">
+                                        @result.Outcome
+                                    </span>
+                                </td>
+                                <td>@result.Message</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public IReadOnlyList<UploadDocumentResult> Results { get; set; } = Array.Empty<UploadDocumentResult>();
+
+    private static string GetBadgeColor(string outcome) =>
+        outcome switch
+        {
+            "Succeeded" => "success",
+            "Rejected" => "warning",
+            "Failed" => "danger",
+            _ => "secondary"
+        };
+}

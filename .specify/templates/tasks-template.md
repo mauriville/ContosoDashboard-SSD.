@@ -8,7 +8,9 @@ description: "Task list template for feature implementation"
 **Input**: Design documents from `/specs/[###-feature-name]/`
 **Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/
 
-**Tests**: The examples below include test tasks. Tests are OPTIONAL - only include them if explicitly requested in the feature specification.
+**Tests**: The examples below include test tasks. Add automated tests whenever the specification or
+constitution requires them, especially for authorization, persistence, and regression-prone business
+rules. If automated tests are not added, include explicit verification tasks instead.
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
@@ -20,10 +22,13 @@ description: "Task list template for feature implementation"
 
 ## Path Conventions
 
-- **Single project**: `src/`, `tests/` at repository root
-- **Web app**: `backend/src/`, `frontend/src/`
-- **Mobile**: `api/src/`, `ios/src/` or `android/src/`
-- Paths shown below assume single project - adjust based on plan.md structure
+- **Application project**: `ContosoDashboard/` with `Data/`, `Models/`, `Pages/`, `Services/`,
+  `Shared/`, and `wwwroot/`
+- **Supporting documentation**: `README.md`, `StakeholderDocs/`, and `.specify/`
+- **Tests**: Add a repository-appropriate test project or test folder when the feature needs
+  automated coverage
+- Paths shown below assume the current Blazor Server project structure - adjust only if plan.md
+  explicitly approves a different layout
 
 <!-- 
   ============================================================================
@@ -48,9 +53,9 @@ description: "Task list template for feature implementation"
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Create project structure per implementation plan
-- [ ] T002 Initialize [language] project with [framework] dependencies
-- [ ] T003 [P] Configure linting and formatting tools
+- [ ] T001 Review affected requirements in `README.md` and `StakeholderDocs/`
+- [ ] T002 Register or update required services, options, and policies in `ContosoDashboard/Program.cs`
+- [ ] T003 [P] Create or update shared models, pages, or service interfaces in their planned locations
 
 ---
 
@@ -62,12 +67,12 @@ description: "Task list template for feature implementation"
 
 Examples of foundational tasks (adjust based on your project):
 
-- [ ] T004 Setup database schema and migrations framework
-- [ ] T005 [P] Implement authentication/authorization framework
-- [ ] T006 [P] Setup API routing and middleware structure
-- [ ] T007 Create base models/entities that all stories depend on
-- [ ] T008 Configure error handling and logging infrastructure
-- [ ] T009 Setup environment configuration management
+- [ ] T004 Update EF Core models and `ContosoDashboard/Data/ApplicationDbContext.cs` for SQLite-backed persistence
+- [ ] T005 [P] Implement or update service-layer authorization and role checks
+- [ ] T006 [P] Add interface abstractions and DI wiring for any local-versus-future-cloud infrastructure
+- [ ] T007 Update shared pages/components to call services without embedding business logic
+- [ ] T008 Document local database reset, seed data, or storage setup changes
+- [ ] T009 Capture validation approach for happy-path and unauthorized-path behavior
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -79,21 +84,22 @@ Examples of foundational tasks (adjust based on your project):
 
 **Independent Test**: [How to verify this story works on its own]
 
-### Tests for User Story 1 (OPTIONAL - only if tests requested) ⚠️
+### Tests for User Story 1 (include when plan requires automated coverage) ⚠️
 
-> **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
+> **NOTE**: When tests are included, add the highest-risk authorization or persistence checks first
+> and ensure they fail before implementation.
 
-- [ ] T010 [P] [US1] Contract test for [endpoint] in tests/contract/test_[name].py
-- [ ] T011 [P] [US1] Integration test for [user journey] in tests/integration/test_[name].py
+- [ ] T010 [P] [US1] Authorization or service test for [rule] in the chosen test project
+- [ ] T011 [P] [US1] Integration or UI workflow test for [user journey] in the chosen test project
 
 ### Implementation for User Story 1
 
-- [ ] T012 [P] [US1] Create [Entity1] model in src/models/[entity1].py
-- [ ] T013 [P] [US1] Create [Entity2] model in src/models/[entity2].py
-- [ ] T014 [US1] Implement [Service] in src/services/[service].py (depends on T012, T013)
-- [ ] T015 [US1] Implement [endpoint/feature] in src/[location]/[file].py
-- [ ] T016 [US1] Add validation and error handling
-- [ ] T017 [US1] Add logging for user story 1 operations
+- [ ] T012 [P] [US1] Create or update [Entity1] in `ContosoDashboard/Models/[Entity1].cs`
+- [ ] T013 [P] [US1] Create or update [Entity2] in `ContosoDashboard/Models/[Entity2].cs`
+- [ ] T014 [US1] Implement [Service] in `ContosoDashboard/Services/[Service].cs` (depends on T012, T013)
+- [ ] T015 [US1] Implement the user-facing workflow in `ContosoDashboard/Pages/` or `Shared/`
+- [ ] T016 [US1] Add validation, authorization, and SQLite persistence handling
+- [ ] T017 [US1] Update docs or verification notes for user story 1 behavior
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 
@@ -105,17 +111,17 @@ Examples of foundational tasks (adjust based on your project):
 
 **Independent Test**: [How to verify this story works on its own]
 
-### Tests for User Story 2 (OPTIONAL - only if tests requested) ⚠️
+### Tests for User Story 2 (include when plan requires automated coverage) ⚠️
 
-- [ ] T018 [P] [US2] Contract test for [endpoint] in tests/contract/test_[name].py
-- [ ] T019 [P] [US2] Integration test for [user journey] in tests/integration/test_[name].py
+- [ ] T018 [P] [US2] Authorization or service test for [rule] in the chosen test project
+- [ ] T019 [P] [US2] Integration or UI workflow test for [user journey] in the chosen test project
 
 ### Implementation for User Story 2
 
-- [ ] T020 [P] [US2] Create [Entity] model in src/models/[entity].py
-- [ ] T021 [US2] Implement [Service] in src/services/[service].py
-- [ ] T022 [US2] Implement [endpoint/feature] in src/[location]/[file].py
-- [ ] T023 [US2] Integrate with User Story 1 components (if needed)
+- [ ] T020 [P] [US2] Create or update [Entity] in `ContosoDashboard/Models/[Entity].cs`
+- [ ] T021 [US2] Implement [Service] in `ContosoDashboard/Services/[Service].cs`
+- [ ] T022 [US2] Implement the user-facing workflow in `ContosoDashboard/Pages/` or `Shared/`
+- [ ] T023 [US2] Integrate with User Story 1 components through services and DI
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
 
@@ -127,16 +133,16 @@ Examples of foundational tasks (adjust based on your project):
 
 **Independent Test**: [How to verify this story works on its own]
 
-### Tests for User Story 3 (OPTIONAL - only if tests requested) ⚠️
+### Tests for User Story 3 (include when plan requires automated coverage) ⚠️
 
-- [ ] T024 [P] [US3] Contract test for [endpoint] in tests/contract/test_[name].py
-- [ ] T025 [P] [US3] Integration test for [user journey] in tests/integration/test_[name].py
+- [ ] T024 [P] [US3] Authorization or service test for [rule] in the chosen test project
+- [ ] T025 [P] [US3] Integration or UI workflow test for [user journey] in the chosen test project
 
 ### Implementation for User Story 3
 
-- [ ] T026 [P] [US3] Create [Entity] model in src/models/[entity].py
-- [ ] T027 [US3] Implement [Service] in src/services/[service].py
-- [ ] T028 [US3] Implement [endpoint/feature] in src/[location]/[file].py
+- [ ] T026 [P] [US3] Create or update [Entity] in `ContosoDashboard/Models/[Entity].cs`
+- [ ] T027 [US3] Implement [Service] in `ContosoDashboard/Services/[Service].cs`
+- [ ] T028 [US3] Implement the user-facing workflow in `ContosoDashboard/Pages/` or `Shared/`
 
 **Checkpoint**: All user stories should now be independently functional
 
@@ -150,12 +156,12 @@ Examples of foundational tasks (adjust based on your project):
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] TXXX [P] Documentation updates in docs/
+- [ ] TXXX [P] Documentation updates in `README.md`, `StakeholderDocs/`, or feature quickstarts
 - [ ] TXXX Code cleanup and refactoring
 - [ ] TXXX Performance optimization across all stories
-- [ ] TXXX [P] Additional unit tests (if requested) in tests/unit/
-- [ ] TXXX Security hardening
-- [ ] TXXX Run quickstart.md validation
+- [ ] TXXX [P] Additional automated tests in the chosen test project
+- [ ] TXXX Verify role-based access, service-level authorization, and IDOR protections
+- [ ] TXXX Run local SQLite setup/reset and quickstart validation
 
 ---
 
@@ -178,10 +184,10 @@ Examples of foundational tasks (adjust based on your project):
 
 ### Within Each User Story
 
-- Tests (if included) MUST be written and FAIL before implementation
+- Highest-risk tests or verification tasks first
 - Models before services
-- Services before endpoints
-- Core implementation before integration
+- Services before pages or endpoints
+- Authorization and persistence checks before polish
 - Story complete before moving to next priority
 
 ### Parallel Opportunities
@@ -198,13 +204,13 @@ Examples of foundational tasks (adjust based on your project):
 ## Parallel Example: User Story 1
 
 ```bash
-# Launch all tests for User Story 1 together (if tests requested):
-Task: "Contract test for [endpoint] in tests/contract/test_[name].py"
-Task: "Integration test for [user journey] in tests/integration/test_[name].py"
+# Launch all verification for User Story 1 together (if independent):
+Task: "Authorization or service test for [rule]"
+Task: "Integration or UI workflow test for [user journey]"
 
 # Launch all models for User Story 1 together:
-Task: "Create [Entity1] model in src/models/[entity1].py"
-Task: "Create [Entity2] model in src/models/[entity2].py"
+Task: "Create or update [Entity1] in ContosoDashboard/Models/[Entity1].cs"
+Task: "Create or update [Entity2] in ContosoDashboard/Models/[Entity2].cs"
 ```
 
 ---
@@ -245,7 +251,7 @@ With multiple developers:
 - [P] tasks = different files, no dependencies
 - [Story] label maps task to specific user story for traceability
 - Each user story should be independently completable and testable
-- Verify tests fail before implementing
+- Verify included tests fail before implementing
 - Commit after each task or logical group
 - Stop at any checkpoint to validate story independently
 - Avoid: vague tasks, same file conflicts, cross-story dependencies that break independence

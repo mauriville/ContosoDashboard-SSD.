@@ -3,7 +3,8 @@
 **Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
 **Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
 
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Note**: This template is filled in by the `/speckit.plan` command. See
+`.github/agents/speckit.plan.agent.md` for the execution workflow.
 
 ## Summary
 
@@ -31,7 +32,17 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+- **Training-only scope**: Confirm the feature keeps the application usable as a training-only,
+  non-production system and treats any production migration guidance as optional.
+- **Offline-first behavior**: Confirm all core flows remain functional locally without mandatory
+  external or cloud dependencies.
+- **Authorization boundary**: Identify every affected role, ownership rule, and service-level
+  authorization or IDOR check required by the feature.
+- **Architecture boundary**: Map impacted `Pages`, `Shared`, `Services`, `Models`, `Data`, and
+  dependency injection registrations; justify any new abstraction for local-versus-future-cloud
+  infrastructure.
+- **Persistence and verification**: Describe SQLite or EF Core impacts, seed/reset implications,
+  and the validation plan for happy-path plus unauthorized-path behavior.
 
 ## Project Structure
 
@@ -48,51 +59,28 @@ specs/[###-feature]/
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
+ContosoDashboard/
+├── Data/
+├── Models/
+├── Pages/
+├── Services/
+├── Shared/
+├── wwwroot/
+├── Program.cs
+├── appsettings.json
+└── ContosoDashboard.csproj
 
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+StakeholderDocs/
+README.md
+.specify/
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Use the existing Blazor Server application under
+`ContosoDashboard/`. Place UI work in `Pages/` or `Shared/`, business logic and authorization in
+`Services/`, persistence changes in `Data/` and `Models/`, and supporting requirement or training
+guidance updates in `README.md` or `StakeholderDocs/` as needed.
 
 ## Complexity Tracking
 

@@ -74,6 +74,8 @@
 
 - What happens when [boundary condition]?
 - How does system handle [error scenario]?
+- What happens when a user lacks the required role, ownership, or project membership?
+- How does the feature behave when only local or offline resources are available?
 
 ## Requirements *(mandatory)*
 
@@ -99,6 +101,22 @@
 
 - **[Entity 1]**: [What it represents, key attributes without implementation]
 - **[Entity 2]**: [What it represents, relationships to other entities]
+
+## Constraints & Non-Goals *(mandatory)*
+
+### Constraints
+
+- **C-001**: Feature MUST preserve the repository's training-only, non-production posture.
+- **C-002**: Feature MUST keep core scenarios functional without mandatory external or cloud
+  services.
+- **C-003**: Feature MUST define authorization and IDOR-prevention expectations for each affected
+  role and resource.
+- **C-004**: Feature MUST state persistence or storage impacts, including SQLite or EF Core
+  assumptions when data changes occur.
+
+### Non-Goals
+
+- [List explicit out-of-scope items so training scope and implementation boundaries stay clear]
 
 ## Success Criteria *(mandatory)*
 

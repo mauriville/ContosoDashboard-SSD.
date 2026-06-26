@@ -5,6 +5,16 @@
 **Status**: Draft  
 **Input**: User description: "Create the feature specification for the document upload and management feature using the stakeholder requirements file at `/StakeholderDocs/document-upload-and-management-feature.md`."
 
+## Clarifications
+
+### Session 2026-06-26
+
+- Q: What access should a direct document share grant? → A: Direct shares grant read access only, so recipients may find, preview, and download the document but do not gain edit, delete, replace, or resharing rights unless they already hold a separate management role.
+- Q: What should happen to a document when its linked project or task is archived, completed, or deleted? → A: The document must be removed from inactive project or task views and remain accessible only through any other valid entitlement such as ownership, explicit share, or authorized management access.
+- Q: What happens when a document is deleted? → A: Deletion permanently removes the document from user-facing access, revokes active shares, and preserves only the audit history needed for administrator review.
+- Q: What should happen if document safety verification cannot complete? → A: The upload must fail closed, the file must not become available, and the user must receive a clear failure message.
+- Q: What minimum detail must audit records capture? → A: Audit records must capture the actor, action, document, timestamp, outcome, and related project or sharing context.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Upload and categorize documents (Priority: P1)
@@ -20,6 +30,7 @@ As an employee, I want to upload work-related files, add the required metadata, 
 1. **Given** an authenticated employee selects a supported file that is 25 MB or smaller, **When** they provide a document title and category and submit the upload, **Then** the document is stored in the dashboard, the user sees upload progress and a completion message, and the document record shows the captured metadata.
 2. **Given** an authenticated user selects a file larger than 25 MB or a file type outside the supported list, **When** they attempt to upload it, **Then** the upload is rejected before the document becomes available and the user sees a clear reason for the rejection.
 3. **Given** the dashboard is being used in its normal local training environment without any external services, **When** a user uploads a supported document, **Then** the upload workflow still completes successfully without requiring internet connectivity.
+4. **Given** a supported file is submitted for upload, **When** safety verification detects harmful content or cannot complete successfully, **Then** the upload fails, the document is not made available, and the user sees a clear failure message.
 
 ---
 
@@ -52,8 +63,8 @@ As a document owner or authorized manager, I want to update metadata, replace fi
 
 1. **Given** a user uploaded a document, **When** they edit its title, description, category, or tags, **Then** the updated metadata is reflected anywhere that document appears.
 2. **Given** a user uploads a replacement for a document they are allowed to manage, **When** the replacement is confirmed, **Then** the document remains available through the same business context with the updated file content and current metadata.
-3. **Given** a document owner shares a document with specific users or teams, **When** the share action is completed, **Then** recipients are notified in the application and the document appears in their "Shared with Me" view.
-4. **Given** a user attempts to delete a document, **When** they confirm the deletion and they have the required permission, **Then** the document is permanently removed from user-facing views and can no longer be downloaded.
+3. **Given** a document owner shares a document with specific users or teams, **When** the share action is completed, **Then** recipients are notified in the application, the document appears in their "Shared with Me" view, and the share grants preview and download access without granting edit, delete, replace, or resharing rights by itself.
+4. **Given** a user attempts to delete a document, **When** they confirm the deletion and they have the required permission, **Then** the document is permanently removed from user-facing views, all active shares for that document are revoked, the file can no longer be previewed or downloaded, and administrator audit history remains available.
 
 ---
 
@@ -67,7 +78,7 @@ As an administrator, I want to review document activity and generate usage repor
 
 **Acceptance Scenarios**:
 
-1. **Given** users upload, download, share, and delete documents, **When** an administrator reviews document activity, **Then** those actions are recorded with enough context to support audit review.
+1. **Given** users upload, download, share, and delete documents, **When** an administrator reviews document activity, **Then** each action is recorded with the actor, action, document, timestamp, outcome, and relevant project or sharing context needed for audit review.
 2. **Given** document activity has accumulated over time, **When** an administrator generates document usage reports, **Then** they can review the most uploaded document types, the most active uploaders, and overall document access patterns.
 
 ### Edge Cases
@@ -75,8 +86,9 @@ As an administrator, I want to review document activity and generate usage repor
 - A file that is exactly 25 MB must be accepted if it meets all other rules, while a file above 25 MB must be rejected with a clear message.
 - If a user uploads multiple files and one or more files are unsupported or oversized, the system must clearly identify which files failed and must not silently mark failed files as available.
 - If a user loses project membership or role-based entitlement after a document was uploaded, subsequent search, preview, download, and management attempts must immediately respect the new access boundaries.
-- If a document is linked to a project or task and that work item is later archived, completed, or deleted, the document must remain governed by clear visibility rules instead of becoming orphaned or publicly visible.
+- If a document is linked to a project or task and that work item is later archived, completed, or deleted, the document must be removed from that inactive work item view and remain accessible only through any other still-valid entitlement.
 - If only local resources are available, core upload, browse, search, preview, download, and audit workflows must still function within the training environment without mandatory cloud connectivity.
+- If document safety verification finds harmful content or cannot complete, the upload must fail without creating a user-accessible document.
 
 ## Requirements *(mandatory)*
 
@@ -89,7 +101,7 @@ As an administrator, I want to review document activity and generate usage repor
 - **FR-005**: The system MUST require a document title and category for every uploaded document and MUST allow an optional description, associated project, and user-defined tags.
 - **FR-006**: The system MUST provide the following predefined categories for user selection: Project Documents, Team Resources, Personal Files, Reports, Presentations, and Other.
 - **FR-007**: The system MUST automatically capture and retain upload date and time, uploader identity, file size, and file type for every uploaded document.
-- **FR-008**: The system MUST verify uploaded files for harmful content before making them available to users.
+- **FR-008**: The system MUST verify uploaded files for harmful content before making them available to users and MUST fail the upload without making the document available if that verification detects harmful content or cannot complete successfully.
 - **FR-009**: The system MUST provide a personal document view where users can see all documents they uploaded, including title, category, upload date, file size, and associated project.
 - **FR-010**: The system MUST allow users to sort their document list by title, upload date, category, and file size and to filter it by category, associated project, and date range.
 - **FR-011**: The system MUST provide project-specific document views so authorized project members can see and download documents associated with their projects.
@@ -101,23 +113,26 @@ As an administrator, I want to review document activity and generate usage repor
   - Team Leads can manage documents uploaded by members of their team.
   - Project Managers can manage documents associated with their projects.
   - Administrators have full document access for audit and compliance review.
-- **FR-016**: The system MUST allow document owners to share documents with specific users or teams.
+- **FR-016**: The system MUST allow document owners to share documents with specific users or teams as a read-access grant.
 - **FR-017**: The system MUST place received shares in a "Shared with Me" experience for recipients and MUST notify recipients when a document is shared with them.
 - **FR-018**: The system MUST show related documents within task details and MUST allow users to add a document from a task context so that the document is associated with the task's project.
 - **FR-019**: The system MUST provide dashboard visibility into document activity by showing the five most recent documents uploaded by the user and a document count within dashboard summaries.
 - **FR-020**: The system MUST notify users when a new document is added to one of their projects.
-- **FR-021**: The system MUST record document-related activities, including uploads, downloads, deletions, and sharing actions, and MUST make audit reporting available to administrators.
+- **FR-021**: The system MUST record document-related activities, including uploads, downloads, deletions, and sharing actions, with actor, action, document, timestamp, outcome, and relevant project or sharing context, and MUST make audit reporting available to administrators.
 - **FR-022**: The system MUST allow administrators to review reports covering most uploaded document types, most active uploaders, and document access patterns.
 - **FR-023**: The system MUST ensure users can see, open, edit, delete, share, or report on only the documents allowed by their role, ownership, team relationship, project membership, or explicit share permissions.
 - **FR-024**: The system MUST fail closed when a user is not entitled to a document and MUST avoid exposing protected document contents through browsing, searching, previewing, downloading, or management actions.
 - **FR-025**: The system MUST keep core document workflows functional in the repository's self-contained local training environment without requiring mandatory external or cloud services.
+- **FR-026**: The system MUST ensure that an explicit share by itself grants browse, search, preview, and download access only and MUST NOT grant edit, replace, delete, or resharing rights.
+- **FR-027**: If a linked project or task becomes archived, completed, or deleted, the system MUST remove the document from that inactive project or task view and MUST allow access only through any remaining valid entitlement.
+- **FR-028**: When a document is deleted, the system MUST revoke active shares for that document, remove it from user-facing views, prevent future preview or download, and preserve related audit records for administrator review.
 
 ### Key Entities *(include if feature involves data)*
 
 - **Document**: A work-related file stored in the dashboard with business metadata such as title, description, category, tags, file type, file size, upload timestamp, uploader, and optional links to a project or task context.
-- **Document Share**: A permission grant that gives a specific user or team access to a document outside of ownership alone and determines who sees the document in shared views and notifications.
-- **Document Activity Record**: A history entry that captures a document event such as upload, download, share, metadata update, replacement, or deletion for audit and reporting purposes.
-- **Document Collection Context**: The business grouping that determines where a document appears, such as personal documents, project documents, task-related documents, recent documents, or shared documents.
+- **Document Share**: A permission grant that gives a specific user or team read access to a document outside of ownership alone and determines who sees the document in shared views and notifications.
+- **Document Activity Record**: A history entry that captures a document event such as upload, download, share, metadata update, replacement, or deletion together with the actor, timestamp, outcome, and relevant business context for audit and reporting purposes.
+- **Document Collection Context**: The business grouping that determines where a document appears, such as personal documents, project documents, task-related documents, recent documents, or shared documents, with inactive project or task contexts no longer acting as a visible access path.
 
 ## Constraints & Non-Goals *(mandatory)*
 

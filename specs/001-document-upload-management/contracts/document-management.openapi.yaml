@@ -1,0 +1,569 @@
+openapi: 3.0.3
+info:
+  title: ContosoDashboard Document Management API
+  version: 0.1.0
+  description: >
+    Planning contract for the offline-first document upload and management feature in the
+    ContosoDashboard training application. Endpoints assume cookie-based mock authentication and
+    fail-closed record access semantics.
+servers:
+  - url: https://localhost:5001
+    description: Local development
+security:
+  - cookieAuth: []
+tags:
+  - name: Documents
+  - name: Shares
+  - name: Admin
+paths:
+  /api/documents:
+    get:
+      tags: [Documents]
+      summary: List authorized documents
+      description: Returns only documents the current user is authorized to browse.
+      parameters:
+        - in: query
+          name: scope
+          schema:
+            type: string
+            enum: [mine, shared, project, all-accessible]
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: category
+          schema:
+            type: string
+        - in: query
+          name: projectId
+          schema:
+            type: integer
+        - in: query
+          name: fromDateUtc
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: toDateUtc
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: sortBy
+          schema:
+            type: string
+            enum: [title, uploadedAtUtc, category, fileSizeBytes]
+        - in: query
+          name: sortDirection
+          schema:
+            type: string
+            enum: [asc, desc]
+      responses:
+        '200':
+          description: Authorized document results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DocumentSummary'
+    post:
+      tags: [Documents]
+      summary: Upload one or more documents
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [files, title, category]
+              properties:
+                files:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                title:
+                  type: string
+                description:
+                  type: string
+                category:
+                  type: string
+                  enum:
+                    - Project Documents
+                    - Team Resources
+                    - Personal Files
+                    - Reports
+                    - Presentations
+                    - Other
+                projectId:
+                  type: integer
+                  nullable: true
+                taskId:
+                  type: integer
+                  nullable: true
+                tags:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '201':
+          description: Upload result per file
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadDocumentsResponse'
+        '400':
+          description: Validation or safety-verification failure
+  /api/documents/{documentId}:
+    get:
+      tags: [Documents]
+      summary: Get authorized document details
+      parameters:
+        - $ref: '#/components/parameters/DocumentId'
+      responses:
+        '200':
+          description: Document details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentDetails'
+        '404':
+          description: Document not found or not authorized
+    put:
+      tags: [Documents]
+      summary: Update document metadata
+      parameters:
+        - $ref: '#/components/parameters/DocumentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDocumentMetadataRequest'
+      responses:
+        '200':
+          description: Metadata updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentDetails'
+        '404':
+          description: Document not found or not authorized
+    delete:
+      tags: [Documents]
+      summary: Delete a document
+      parameters:
+        - $ref: '#/components/parameters/DocumentId'
+      responses:
+        '204':
+          description: Document deleted and active shares revoked
+        '404':
+          description: Document not found or not authorized
+  /api/documents/{documentId}/content:
+    get:
+      tags: [Documents]
+      summary: Preview or download document content
+      description: >
+        Returns authorized content only. Use `disposition=inline` for supported preview formats and
+        `disposition=attachment` for downloads.
+      parameters:
+        - $ref: '#/components/parameters/DocumentId'
+        - in: query
+          name: disposition
+          schema:
+            type: string
+            enum: [inline, attachment]
+      responses:
+        '200':
+          description: Authorized file stream
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Document not found or not authorized
+  /api/documents/{documentId}/replacement:
+    post:
+      tags: [Documents]
+      summary: Replace a document's binary content
+      parameters:
+        - $ref: '#/components/parameters/DocumentId'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Document content replaced
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentDetails'
+        '400':
+          description: Validation or safety-verification failure
+        '404':
+          description: Document not found or not authorized
+  /api/documents/{documentId}/shares:
+    post:
+      tags: [Shares]
+      summary: Create a read-only share
+      parameters:
+        - $ref: '#/components/parameters/DocumentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDocumentShareRequest'
+      responses:
+        '201':
+          description: Share created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentShare'
+        '400':
+          description: Invalid share target or unsupported access level
+        '404':
+          description: Document not found or not authorized
+  /api/documents/shared-with-me:
+    get:
+      tags: [Documents]
+      summary: List documents shared with the current user
+      responses:
+        '200':
+          description: Shared documents
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DocumentSummary'
+  /api/projects/{projectId}/documents:
+    get:
+      tags: [Documents]
+      summary: List documents visible from a project context
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Authorized project documents
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DocumentSummary'
+        '404':
+          description: Project not found or not authorized
+  /api/tasks/{taskId}/documents:
+    get:
+      tags: [Documents]
+      summary: List documents visible from a task context
+      parameters:
+        - in: path
+          name: taskId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Authorized task documents
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DocumentSummary'
+        '404':
+          description: Task not found or not authorized
+  /api/admin/document-activity:
+    get:
+      tags: [Admin]
+      summary: Review document activity
+      description: Administrator-only audit endpoint.
+      parameters:
+        - in: query
+          name: actionType
+          schema:
+            type: string
+        - in: query
+          name: fromDateUtc
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: toDateUtc
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Document activity results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DocumentActivityRecord'
+        '403':
+          description: Administrator role required
+  /api/admin/document-reports/usage:
+    get:
+      tags: [Admin]
+      summary: Review aggregate usage reporting
+      description: Administrator-only report for document types, active uploaders, and access patterns.
+      responses:
+        '200':
+          description: Usage report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentUsageReport'
+        '403':
+          description: Administrator role required
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: .AspNetCore.Cookies
+  parameters:
+    DocumentId:
+      in: path
+      name: documentId
+      required: true
+      schema:
+        type: integer
+  schemas:
+    DocumentSummary:
+      type: object
+      required: [documentId, title, category, fileSizeBytes, fileType, uploadedAtUtc, uploaderDisplayName]
+      properties:
+        documentId:
+          type: integer
+        title:
+          type: string
+        category:
+          type: string
+        fileSizeBytes:
+          type: integer
+          format: int64
+        fileType:
+          type: string
+        uploadedAtUtc:
+          type: string
+          format: date-time
+        uploaderDisplayName:
+          type: string
+        projectId:
+          type: integer
+          nullable: true
+        projectName:
+          type: string
+          nullable: true
+        taskId:
+          type: integer
+          nullable: true
+        tags:
+          type: array
+          items:
+            type: string
+        accessReason:
+          type: string
+          description: owner, project, share, admin, team
+    DocumentDetails:
+      allOf:
+        - $ref: '#/components/schemas/DocumentSummary'
+        - type: object
+          properties:
+            description:
+              type: string
+              nullable: true
+            originalFileName:
+              type: string
+            lastContentUpdatedAtUtc:
+              type: string
+              format: date-time
+              nullable: true
+            canEdit:
+              type: boolean
+            canReplace:
+              type: boolean
+            canDelete:
+              type: boolean
+            canShare:
+              type: boolean
+            activeShares:
+              type: array
+              items:
+                $ref: '#/components/schemas/DocumentShare'
+    UploadDocumentsResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            type: object
+            required: [fileName, outcome]
+            properties:
+              fileName:
+                type: string
+              outcome:
+                type: string
+                enum: [Succeeded, Rejected, Failed]
+              documentId:
+                type: integer
+                nullable: true
+              message:
+                type: string
+    UpdateDocumentMetadataRequest:
+      type: object
+      required: [title, category]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        category:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+    CreateDocumentShareRequest:
+      type: object
+      required: [accessLevel]
+      properties:
+        sharedWithUserId:
+          type: integer
+          nullable: true
+        sharedWithDepartment:
+          type: string
+          nullable: true
+        accessLevel:
+          type: string
+          enum: [Read]
+    DocumentShare:
+      type: object
+      required: [documentShareId, accessLevel, createdAtUtc]
+      properties:
+        documentShareId:
+          type: integer
+        sharedByUserId:
+          type: integer
+        sharedWithUserId:
+          type: integer
+          nullable: true
+        sharedWithDepartment:
+          type: string
+          nullable: true
+        accessLevel:
+          type: string
+        createdAtUtc:
+          type: string
+          format: date-time
+        revokedAtUtc:
+          type: string
+          format: date-time
+          nullable: true
+    DocumentActivityRecord:
+      type: object
+      required: [documentActivityRecordId, actorUserId, actionType, outcome, occurredAtUtc]
+      properties:
+        documentActivityRecordId:
+          type: integer
+        documentId:
+          type: integer
+          nullable: true
+        actorUserId:
+          type: integer
+        actionType:
+          type: string
+        outcome:
+          type: string
+        occurredAtUtc:
+          type: string
+          format: date-time
+        projectId:
+          type: integer
+          nullable: true
+        taskId:
+          type: integer
+          nullable: true
+        shareTargetUserId:
+          type: integer
+          nullable: true
+        shareTargetDepartment:
+          type: string
+          nullable: true
+        documentTitleSnapshot:
+          type: string
+        documentCategorySnapshot:
+          type: string
+          nullable: true
+        contextSummary:
+          type: string
+          nullable: true
+    DocumentUsageReport:
+      type: object
+      properties:
+        mostUploadedDocumentTypes:
+          type: array
+          items:
+            type: object
+            properties:
+              fileType:
+                type: string
+              count:
+                type: integer
+        mostActiveUploaders:
+          type: array
+          items:
+            type: object
+            properties:
+              userId:
+                type: integer
+              displayName:
+                type: string
+              uploadCount:
+                type: integer
+        accessPatterns:
+          type: array
+          items:
+            type: object
+            properties:
+              actionType:
+                type: string
+              count:
+                type: integer
